@@ -6,7 +6,17 @@ A multi-user **invoicing web app for freelancers and small businesses**, built w
 EF Core and ASP.NET Core Identity. Keep clients, draft invoices with VAT, send them with a legal-style
 gap-free number, track who still owes you money and download a clean PDF.
 
-![Dashboard](docs/dashboard.png)
+## Screenshots
+
+Dashboard, an invoice, the invoice form with live totals, the list, the sign-in page, the app on a phone, and the PDF it produces.
+
+<img src="docs/screenshots/03-dashboard.png" alt="Dashboard" width="49%"> <img src="docs/screenshots/05-invoice.png" alt="Invoice" width="49%">
+
+<img src="docs/screenshots/06-new-invoice.png" alt="New invoice with live totals" width="49%"> <img src="docs/screenshots/04-invoices.png" alt="Invoice list" width="49%">
+
+<img src="docs/screenshots/02-login.png" alt="Log in" width="32%"> <img src="docs/screenshots/mobile-03-dashboard.png" alt="Dashboard on a phone" width="20%"> <img src="docs/screenshots/mobile-06-new-invoice.png" alt="New invoice on a phone" width="20%">
+
+<img src="docs/invoice-pdf.png" alt="The invoice as a PDF" width="49%">
 
 ## Features
 
@@ -22,12 +32,6 @@ gap-free number, track who still owes you money and download a clean PDF.
 - **PDF invoices** (QuestPDF): company header, bill-to, line table, VAT breakdown, payment details, page numbers.
 - **Search and filters** by status, client name or invoice number.
 - **Live total preview** while typing lines (the server always recalculates the final amounts).
-
-| New invoice | Invoice details |
-|---|---|
-| ![New invoice](docs/new-invoice.png) | ![Invoice](docs/invoice.png) |
-
-![PDF](docs/invoice-pdf.png)
 
 ## The interesting engineering
 
