@@ -1,29 +1,27 @@
-using InvoiceHub.Web.Data;
 using InvoiceHub.Web.Domain;
-using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceHub.Web.Services;
 
 public sealed record ClientInput(string Name, string? Email, string? Address, string? TaxId);
 
 /// <summary>Clients of one user. Like invoices, every query is scoped to the owner.</summary>
-public sealed class ClientService(ApplicationDbContext db)
+public sealed class ClientService(IClientRepository clients, IUnitOfWork unitOfWork)
 {
     public Task<List<Client>> ListAsync(string ownerId, CancellationToken ct = default) =>
-        db.Clients.AsNoTracking().Where(c => c.OwnerId == ownerId).OrderBy(c => c.Name).ToListAsync(ct);
+        clients.ListAsync(ownerId, ct);
 
     public Task<Client?> GetAsync(string ownerId, int id, CancellationToken ct = default) =>
-        db.Clients.FirstOrDefaultAsync(c => c.OwnerId == ownerId && c.Id == id, ct);
+        clients.FindAsync(ownerId, id, ct);
 
-    public async Task<int> InvoiceCountAsync(string ownerId, int clientId, CancellationToken ct = default) =>
-        await db.Invoices.CountAsync(i => i.OwnerId == ownerId && i.ClientId == clientId, ct);
+    public Task<int> InvoiceCountAsync(string ownerId, int clientId, CancellationToken ct = default) =>
+        clients.InvoiceCountAsync(ownerId, clientId, ct);
 
     public async Task<Client> CreateAsync(string ownerId, ClientInput input, CancellationToken ct = default)
     {
         var client = new Client { OwnerId = ownerId };
         Apply(client, input);
-        db.Clients.Add(client);
-        await db.SaveChangesAsync(ct);
+        clients.Add(client);
+        await unitOfWork.SaveChangesAsync(ct);
         return client;
     }
 
@@ -32,7 +30,7 @@ public sealed class ClientService(ApplicationDbContext db)
         var client = await GetAsync(ownerId, id, ct);
         if (client is null) return null;
         Apply(client, input);
-        await db.SaveChangesAsync(ct);
+        await unitOfWork.SaveChangesAsync(ct);
         return client;
     }
 
@@ -45,8 +43,8 @@ public sealed class ClientService(ApplicationDbContext db)
         if (await InvoiceCountAsync(ownerId, id, ct) > 0)
             throw new DomainException("This client has invoices and cannot be deleted. Invoices must be kept.");
 
-        db.Clients.Remove(client);
-        await db.SaveChangesAsync(ct);
+        clients.Remove(client);
+        await unitOfWork.SaveChangesAsync(ct);
         return true;
     }
 

@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using InvoiceHub.Web.Domain;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
@@ -36,7 +36,7 @@ public class CompanyForm
     [StringLength(40)]
     public string? Iban { get; set; }
 
-    [Required, StringLength(3, MinimumLength = 3), Display(Name = "Currency (3 letters)")]
+    [Required, StringLength(3, MinimumLength = 3), Display(Name = "Currency")]
     public string Currency { get; set; } = "EUR";
 }
 
@@ -83,3 +83,40 @@ public class InvoiceListModel
     public string? Search { get; init; }
     public string? Status { get; init; }
 }
+
+public class LoginForm
+{
+    [Required, EmailAddress, StringLength(256)]
+    public string Email { get; set; } = "";
+
+    [Required, DataType(DataType.Password), StringLength(100)]
+    public string Password { get; set; } = "";
+
+    [Display(Name = "Keep me signed in")]
+    public bool RememberMe { get; set; }
+}
+
+public class RegisterForm
+{
+    [Required, EmailAddress, StringLength(256)]
+    public string Email { get; set; } = "";
+
+    [Required, DataType(DataType.Password), StringLength(100)]
+    public string Password { get; set; } = "";
+
+    [DataType(DataType.Password), Display(Name = "Repeat password"), Compare(nameof(Password), ErrorMessage = "The two passwords do not match.")]
+    public string ConfirmPassword { get; set; } = "";
+}
+
+public class ChangePasswordForm
+{
+    [Required, DataType(DataType.Password), Display(Name = "Current password"), StringLength(100)]
+    public string CurrentPassword { get; set; } = "";
+
+    [Required, DataType(DataType.Password), Display(Name = "New password"), StringLength(100)]
+    public string NewPassword { get; set; } = "";
+
+    [DataType(DataType.Password), Display(Name = "Repeat new password"), Compare(nameof(NewPassword), ErrorMessage = "The two passwords do not match.")]
+    public string ConfirmPassword { get; set; } = "";
+}
+

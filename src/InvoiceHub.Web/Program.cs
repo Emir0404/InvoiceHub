@@ -1,4 +1,6 @@
 using InvoiceHub.Web.Data;
+using InvoiceHub.Web.Data.Repositories;
+using InvoiceHub.Web.Domain;
 using InvoiceHub.Web.Infrastructure;
 using InvoiceHub.Web.Services;
 using Microsoft.AspNetCore.DataProtection;
@@ -12,7 +14,15 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connectionString));
 
-builder.Services.AddDefaultIdentity<IdentityUser>(options =>
+// Identity without its ready-made pages: sign in, sign up and change password are our own (AccountController).
+builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies(o => { });
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/account/login";
+    options.AccessDeniedPath = "/account/login";
+    options.SlidingExpiration = true;
+});
+builder.Services.AddIdentityCore<IdentityUser>(options =>
     {
         // No email sender in this demo, so accounts are usable straight after registration.
         options.SignIn.RequireConfirmedAccount = false;
@@ -20,11 +30,17 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
         options.User.RequireUniqueEmail = true;
         options.Lockout.MaxFailedAccessAttempts = 5;
     })
-    .AddEntityFrameworkStores<ApplicationDbContext>();
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddSignInManager();
 
 builder.Services.AddControllersWithViews(options =>
     // Every POST needs a valid anti-forgery token, no need to remember [ValidateAntiForgeryToken] each time.
     options.Filters.Add(new Microsoft.AspNetCore.Mvc.AutoValidateAntiforgeryTokenAttribute()));
+
+builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+builder.Services.AddScoped<IInvoiceRepository, EfInvoiceRepository>();
+builder.Services.AddScoped<IClientRepository, EfClientRepository>();
+builder.Services.AddScoped<ICompanyProfileRepository, EfCompanyProfileRepository>();
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<InvoiceService>();
@@ -84,9 +100,6 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
-
-app.MapRazorPages()
-   .WithStaticAssets();
 
 app.Run();
 

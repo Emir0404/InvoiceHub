@@ -1,5 +1,6 @@
 using System.Net;
 using System.Reflection;
+using InvoiceHub.Web.Controllers;
 using InvoiceHub.Tests.TestSupport;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -36,7 +37,7 @@ public class WebTests : IClassFixture<AppFactory>
         var response = await _factory.NewBrowser().Get(url);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-        Assert.Contains("/Identity/Account/Login", response.Headers.Location!.ToString());
+        Assert.Contains("/account/login", response.Headers.Location!.ToString());
     }
 
     [Fact]
@@ -44,10 +45,78 @@ public class WebTests : IClassFixture<AppFactory>
     {
         // A guard against the classic mistake: adding a new controller and forgetting [Authorize].
         var controllers = typeof(Program).Assembly.GetTypes()
-            .Where(t => typeof(Controller).IsAssignableFrom(t) && !t.IsAbstract && t.Name != "HomeController");
+            .Where(t => typeof(Controller).IsAssignableFrom(t) && !t.IsAbstract && t.Name != "HomeController" && t.Name != "AccountController");
 
         Assert.All(controllers, type =>
             Assert.True(type.GetCustomAttribute<AuthorizeAttribute>() is not null, $"{type.Name} has no [Authorize]"));
+    }
+
+    [Fact]
+    public void Only_the_sign_in_actions_of_AccountController_are_public()
+    {
+        var publicActions = typeof(AccountController).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Where(m => m.GetCustomAttribute<AuthorizeAttribute>() is null)
+            .Select(m => m.Name).Distinct().Order().ToArray();
+
+        Assert.Equal(["Login", "Logout", "Register"], publicActions);
+    }
+
+    [Fact]
+    public async Task Changing_the_password_needs_the_current_one_and_a_strong_new_one()
+    {
+        var browser = _factory.NewBrowser();
+        var email = Email();
+        await browser.Register(email, "Password123!");
+
+        var wrong = await browser.PostForm("/account/password", "/account/password",
+            [new("CurrentPassword", "Nope12345!"), new("NewPassword", "Another123!"), new("ConfirmPassword", "Another123!")]);
+        Assert.Equal(HttpStatusCode.OK, wrong.StatusCode);
+        Assert.Contains("current password is not correct", await wrong.Content.ReadAsStringAsync());
+
+        var weak = await browser.PostForm("/account/password", "/account/password",
+            [new("CurrentPassword", "Password123!"), new("NewPassword", "short"), new("ConfirmPassword", "short")]);
+        Assert.Equal(HttpStatusCode.OK, weak.StatusCode);
+
+        var ok = await browser.PostForm("/account/password", "/account/password",
+            [new("CurrentPassword", "Password123!"), new("NewPassword", "Another123!"), new("ConfirmPassword", "Another123!")]);
+        Assert.Equal(HttpStatusCode.Redirect, ok.StatusCode);
+
+        // The old password no longer works, the new one does.
+        var fresh = _factory.NewBrowser();
+        var oldLogin = await fresh.PostForm("/account/login", "/account/login", [new("Email", email), new("Password", "Password123!")]);
+        Assert.Equal(HttpStatusCode.OK, oldLogin.StatusCode);
+        var newLogin = await fresh.PostForm("/account/login", "/account/login", [new("Email", email), new("Password", "Another123!")]);
+        Assert.Equal(HttpStatusCode.Redirect, newLogin.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_gives_the_same_answer_for_an_unknown_email_and_a_wrong_password()
+    {
+        var browser = _factory.NewBrowser();
+        var email = Email();
+        await browser.Register(email);
+        var other = _factory.NewBrowser();
+
+        var unknown = await (await other.PostForm("/account/login", "/account/login", [new("Email", Email()), new("Password", "Password123!")])).Content.ReadAsStringAsync();
+        var wrong = await (await other.PostForm("/account/login", "/account/login", [new("Email", email), new("Password", "Wrong12345!")])).Content.ReadAsStringAsync();
+
+        Assert.Contains("The email or password is not correct.", unknown);
+        Assert.Contains("The email or password is not correct.", wrong);
+    }
+
+    [Fact]
+    public async Task Login_never_redirects_to_another_site()
+    {
+        var browser = _factory.NewBrowser();
+        var email = Email();
+        await browser.Register(email);
+        var other = _factory.NewBrowser();
+
+        var response = await other.PostForm("/account/login?returnUrl=https%3A%2F%2Fevil.example%2F", "/account/login",
+            [new("Email", email), new("Password", "Password123!")]);
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.DoesNotContain("evil.example", response.Headers.Location!.ToString());
     }
 
     [Fact]
@@ -229,8 +298,8 @@ public class WebTests : IClassFixture<AppFactory>
     {
         var browser = _factory.NewBrowser();
 
-        var response = await browser.PostForm("/Identity/Account/Register", "/Identity/Account/Register",
-            [new("Input.Email", Email()), new("Input.Password", "short"), new("Input.ConfirmPassword", "short")]);
+        var response = await browser.PostForm("/account/register", "/account/register",
+            [new("Email", Email()), new("Password", "short"), new("ConfirmPassword", "short")]);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(HttpStatusCode.Redirect, (await browser.Get("/Invoices")).StatusCode); // still not signed in

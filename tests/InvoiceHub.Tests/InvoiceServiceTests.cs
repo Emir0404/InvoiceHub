@@ -17,7 +17,7 @@ public class InvoiceServiceTests : IDisposable
     [Fact]
     public async Task A_new_invoice_is_a_draft_without_number_and_takes_the_company_currency()
     {
-        await new CompanyProfileService(_t.Db).SaveAsync(Alice, new CompanyInput("My Co", null, null, null, null, "bam"));
+        await _t.Companies.SaveAsync(Alice, new CompanyInput("My Co", null, null, null, null, "bam"));
         var client = await _t.NewClient(Alice);
 
         var invoice = await _t.Invoices.CreateDraftAsync(Alice, _t.Input(client.Id));
@@ -389,7 +389,7 @@ public class InvoiceServiceTests : IDisposable
     [Fact]
     public async Task Dashboard_keeps_currencies_apart_and_only_counts_own_invoices()
     {
-        var company = new CompanyProfileService(_t.Db);
+        var company = _t.Companies;
         var aliceClient = await _t.NewClient(Alice);
         await _t.SentInvoice(Alice, aliceClient.Id, lines: new LineInput("EUR work", 1, 100m, 0));
 
@@ -422,7 +422,7 @@ public class InvoiceServiceTests : IDisposable
     [Fact]
     public async Task Company_profile_is_saved_once_per_user_and_updated_afterwards()
     {
-        var service = new CompanyProfileService(_t.Db);
+        var service = _t.Companies;
 
         await service.SaveAsync(Alice, new CompanyInput("First", null, null, null, null, "eur"));
         await service.SaveAsync(Alice, new CompanyInput("Second", " Street 1 ", null, null, null, "BAM"));
@@ -443,6 +443,6 @@ public class InvoiceServiceTests : IDisposable
     public async Task Company_currency_must_be_three_letters(string currency)
     {
         await Assert.ThrowsAsync<DomainException>(() =>
-            new CompanyProfileService(_t.Db).SaveAsync(Alice, new CompanyInput("Co", null, null, null, null, currency)));
+            _t.Companies.SaveAsync(Alice, new CompanyInput("Co", null, null, null, null, currency)));
     }
 }

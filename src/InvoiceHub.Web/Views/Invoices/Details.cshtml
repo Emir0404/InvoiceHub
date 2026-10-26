@@ -16,13 +16,13 @@
     <div class="d-flex flex-wrap gap-2">
         @if (Model.Status == InvoiceStatus.Draft)
         {
-            <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+            <a class="btn btn-quiet" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
             <form asp-action="Send" asp-route-id="@Model.Id" method="post"
                   data-confirm="Send this invoice? It gets its number and can no longer be edited.">
                 <button class="btn btn-primary" type="submit">Send invoice</button>
             </form>
             <form asp-action="Delete" asp-route-id="@Model.Id" method="post" data-confirm="Delete this draft?">
-                <button class="btn btn-outline-danger" type="submit">Delete</button>
+                <button class="btn btn-quiet-danger" type="submit">Delete</button>
             </form>
         }
         @if (Model.Status == InvoiceStatus.Sent)
@@ -32,7 +32,7 @@
                 <button class="btn btn-success text-nowrap" type="submit">Mark as paid</button>
             </form>
         }
-        <a class="btn btn-outline-primary" asp-action="Pdf" asp-route-id="@Model.Id" target="_blank" rel="noopener">Download PDF</a>
+        <a class="btn btn-quiet" asp-action="Pdf" asp-route-id="@Model.Id" target="_blank" rel="noopener">Download PDF</a>
     </div>
 </div>
 
@@ -87,4 +87,4 @@
     </div>
 }
 
-<p class="mt-3"><a asp-action="Index">&larr; Back to invoices</a></p>
+<p class="mt-3"><a class="btn btn-quiet" asp-action="Index">&larr; Back to invoices</a></p>

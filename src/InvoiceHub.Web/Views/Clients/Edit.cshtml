@@ -9,8 +9,10 @@
     <div class="card-body">
         <form asp-action="Edit" asp-route-id="@ViewBag.ClientId" method="post">
             <partial name="_ClientForm" model="Model" />
-            <button class="btn btn-primary" type="submit">Save changes</button>
-            <a class="btn btn-link" asp-action="Index">Cancel</a>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" type="submit">Save changes</button>
+                <a class="btn btn-quiet" asp-action="Index">Cancel</a>
+            </div>
         </form>
     </div>
 </div>

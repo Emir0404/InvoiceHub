@@ -6,24 +6,25 @@
   --ih-accent: #1d4ed8;
 }
 
-html { font-size: 15px; position: relative; min-height: 100%; }
+html { font-size: 15px; }
 @media (min-width: 768px) { html { font-size: 16px; } }
 
-body { background: var(--ih-bg); color: var(--ih-ink); margin-bottom: 56px; }
+body { background: var(--ih-bg); color: var(--ih-ink); min-height: 100vh; display: flex; flex-direction: column; }
+body > main { flex: 1 0 auto; width: 100%; }
 
 .app-nav { background: #fff; border-bottom: 1px solid var(--ih-line); }
 .app-nav .navbar-brand { font-weight: 700; letter-spacing: -.01em; }
 .app-nav .nav-link { color: var(--ih-muted); font-weight: 500; }
 .app-nav .nav-link:hover, .app-nav .nav-link.active { color: var(--ih-ink); }
 .app-nav .nav-link.active { box-shadow: inset 0 -2px 0 var(--ih-accent); }
-.app-nav .btn-link.nav-link { text-decoration: none; }
+.app-nav .account-link { background: none; border: 0; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .brand-mark {
   display: inline-grid; place-items: center; width: 28px; height: 28px; margin-right: 4px;
   background: var(--ih-accent); color: #fff; border-radius: 8px; font-size: .75rem; letter-spacing: 0;
 }
 
-.app-footer { position: absolute; bottom: 0; width: 100%; padding: 16px 0; }
+.app-footer { flex-shrink: 0; margin-top: 2rem; padding: 16px 0; }
 
 .card { border: 1px solid var(--ih-line); border-radius: 12px; box-shadow: 0 1px 2px rgba(16, 24, 40, .04); }
 .card-header { background: #fff; border-bottom: 1px solid var(--ih-line); font-weight: 600; border-radius: 12px 12px 0 0 !important; }
@@ -41,6 +42,12 @@ body { background: var(--ih-bg); color: var(--ih-ink); margin-bottom: 56px; }
 .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .btn-primary { background: var(--ih-accent); border-color: var(--ih-accent); }
+.btn-quiet { color: var(--ih-ink); background: #fff; border-color: #cfd6df; font-weight: 500; }
+.btn-quiet:hover, .btn-quiet:focus { color: var(--ih-ink); background: #eef1f5; border-color: #aab4c0; }
+.btn-quiet-danger { color: #b42318; background: #fff; border-color: #f0c4c0; font-weight: 500; }
+.btn-quiet-danger:hover, .btn-quiet-danger:focus { color: #fff; background: #b42318; border-color: #b42318; }
+.auth-card { max-width: 26rem; margin: 2rem auto; }
+.dropdown-item { cursor: pointer; }
 .btn:focus, .form-control:focus, .form-select:focus { box-shadow: 0 0 0 .2rem rgba(29, 78, 216, .2); }
 .form-label { font-weight: 500; }
 
@@ -56,5 +63,15 @@ body { background: var(--ih-bg); color: var(--ih-ink); margin-bottom: 56px; }
 
 @media (max-width: 767.98px) {
   .stat-value { font-size: 1.3rem; }
-  .table-responsive-stack td, .table-responsive-stack th { white-space: nowrap; }
+  .table > :not(caption) > * > * { padding: .65rem .6rem; }
+
+  /* Invoice lines become little cards instead of a table you have to scroll sideways. */
+  .line-table, .line-table tbody, .line-table tr, .line-table td { display: block; width: 100%; }
+  .line-table thead { display: none; }
+  .line-table tr.line-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem .6rem; padding: .85rem; border-bottom: 1px solid var(--ih-line); }
+  .line-table td { padding: 0; border: 0; }
+  .line-table td[data-label]::before { content: attr(data-label); display: block; color: var(--ih-muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; margin-bottom: .2rem; }
+  .line-table td.line-desc { grid-column: 1 / -1; }
+  .line-table td.line-total { grid-column: 1 / 3; padding-top: 0 !important; text-align: left; align-self: end; font-weight: 600; }
+  .line-table td.line-remove { grid-column: 3; text-align: right; align-self: end; }
 }

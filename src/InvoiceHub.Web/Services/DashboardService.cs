@@ -1,6 +1,4 @@
-using InvoiceHub.Web.Data;
 using InvoiceHub.Web.Domain;
-using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceHub.Web.Services;
 
@@ -15,7 +13,7 @@ public sealed record DashboardSummary(
     int DraftCount,
     IReadOnlyList<Invoice> Recent);
 
-public sealed class DashboardService(ApplicationDbContext db, TimeProvider clock)
+public sealed class DashboardService(IInvoiceRepository invoiceStore, TimeProvider clock)
 {
     public async Task<DashboardSummary> GetAsync(string ownerId, CancellationToken ct = default)
     {
@@ -23,10 +21,7 @@ public sealed class DashboardService(ApplicationDbContext db, TimeProvider clock
 
         // A single user has at most a few thousand invoices. Summing in memory also avoids SQLite's
         // missing decimal SUM and keeps the money maths in one place (InvoiceCalculator).
-        var invoices = await db.Invoices.AsNoTracking()
-            .Include(i => i.Client).Include(i => i.Lines)
-            .Where(i => i.OwnerId == ownerId)
-            .ToListAsync(ct);
+        var invoices = await invoiceStore.ListAllAsync(ownerId, ct);
 
         var sent = invoices.Where(i => i.Status == InvoiceStatus.Sent).ToList();
         var overdue = sent.Where(i => i.IsOverdue(today)).ToList();

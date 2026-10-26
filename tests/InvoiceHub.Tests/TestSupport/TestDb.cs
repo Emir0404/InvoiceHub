@@ -1,4 +1,5 @@
 using InvoiceHub.Web.Data;
+using InvoiceHub.Web.Data.Repositories;
 using InvoiceHub.Web.Domain;
 using InvoiceHub.Web.Services;
 using Microsoft.Data.Sqlite;
@@ -17,8 +18,13 @@ public sealed class TestDb : IDisposable
 
     public ApplicationDbContext Db { get; }
     public FakeTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 10, 26, 12, 0, 0, TimeSpan.Zero));
+    public EfUnitOfWork UnitOfWork { get; }
+    public EfInvoiceRepository InvoiceStore { get; }
+    public EfClientRepository ClientStore { get; }
+    public EfCompanyProfileRepository CompanyStore { get; }
     public InvoiceService Invoices { get; }
     public ClientService Clients { get; }
+    public CompanyProfileService Companies { get; }
     public DashboardService Dashboard { get; }
 
     public DateOnly Today => DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
@@ -29,9 +35,15 @@ public sealed class TestDb : IDisposable
         Db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlite(_connection).Options);
         Db.Database.EnsureCreated();
 
-        Invoices = new InvoiceService(Db, Clock);
-        Clients = new ClientService(Db);
-        Dashboard = new DashboardService(Db, Clock);
+        UnitOfWork = new EfUnitOfWork(Db);
+        InvoiceStore = new EfInvoiceRepository(Db);
+        ClientStore = new EfClientRepository(Db);
+        CompanyStore = new EfCompanyProfileRepository(Db);
+
+        Invoices = new InvoiceService(InvoiceStore, ClientStore, CompanyStore, UnitOfWork, Clock);
+        Clients = new ClientService(ClientStore, UnitOfWork);
+        Companies = new CompanyProfileService(CompanyStore, UnitOfWork);
+        Dashboard = new DashboardService(InvoiceStore, Clock);
     }
 
     public Task<Client> NewClient(string owner, string name = "Acme") =>

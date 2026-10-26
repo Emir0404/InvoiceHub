@@ -1,6 +1,4 @@
-using InvoiceHub.Web.Data;
 using InvoiceHub.Web.Domain;
-using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceHub.Web.Services;
 
@@ -9,57 +7,32 @@ public sealed record LineInput(string Description, decimal Quantity, decimal Uni
 public sealed record InvoiceInput(
     int ClientId, DateOnly IssueDate, DateOnly DueDate, string? Notes, IReadOnlyList<LineInput> Lines);
 
-/// <param name="Status">draft, sent, paid or overdue (empty = all)</param>
-public sealed record InvoiceFilter(string? Search = null, string? Status = null);
-
 /// <summary>
 /// Everything about invoices. Every method takes the owner's id and every query is limited to it,
 /// so one user can never read or change another user's data, whatever ids they put in a URL.
 /// </summary>
-public sealed class InvoiceService(ApplicationDbContext db, TimeProvider clock)
+public sealed class InvoiceService(
+    IInvoiceRepository invoices,
+    IClientRepository clients,
+    ICompanyProfileRepository companies,
+    IUnitOfWork unitOfWork,
+    TimeProvider clock)
 {
     public const int MaxLines = 50;
 
     private DateOnly Today => DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
 
-    public async Task<List<Invoice>> ListAsync(string ownerId, InvoiceFilter filter, CancellationToken ct = default)
-    {
-        var query = db.Invoices.AsNoTracking().Include(i => i.Client).Include(i => i.Lines)
-            .Where(i => i.OwnerId == ownerId);
-
-        var today = Today;
-        query = filter.Status?.ToLowerInvariant() switch
-        {
-            "draft" => query.Where(i => i.Status == InvoiceStatus.Draft),
-            "sent" => query.Where(i => i.Status == InvoiceStatus.Sent),
-            "paid" => query.Where(i => i.Status == InvoiceStatus.Paid),
-            "overdue" => query.Where(i => i.Status == InvoiceStatus.Sent && i.DueDate < today),
-            _ => query,
-        };
-
-        if (!string.IsNullOrWhiteSpace(filter.Search))
-        {
-            // % and _ typed by the user must be searched literally, not act as wildcards.
-            var like = $"%{filter.Search.Trim().Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_")}%";
-            query = query.Where(i => EF.Functions.Like(i.Client.Name, like, "\\")
-                                     || (i.Number != null && EF.Functions.Like(i.Number, like, "\\")));
-        }
-
-        // Newest first. Sorted in memory because SQLite cannot order DateOnly + id combinations reliably across providers.
-        var list = await query.ToListAsync(ct);
-        return list.OrderByDescending(i => i.IssueDate).ThenByDescending(i => i.Id).ToList();
-    }
+    public Task<List<Invoice>> ListAsync(string ownerId, InvoiceFilter filter, CancellationToken ct = default) =>
+        invoices.SearchAsync(ownerId, filter, Today, ct);
 
     public Task<Invoice?> GetAsync(string ownerId, int id, CancellationToken ct = default) =>
-        db.Invoices.Include(i => i.Client).Include(i => i.Lines)
-            .FirstOrDefaultAsync(i => i.OwnerId == ownerId && i.Id == id, ct);
+        invoices.FindAsync(ownerId, id, ct);
 
     public async Task<Invoice> CreateDraftAsync(string ownerId, InvoiceInput input, CancellationToken ct = default)
     {
         await ValidateAsync(ownerId, input, ct);
 
-        var currency = await db.CompanyProfiles.Where(p => p.OwnerId == ownerId)
-            .Select(p => p.Currency).FirstOrDefaultAsync(ct) ?? "EUR";
+        var currency = await companies.CurrencyAsync(ownerId, ct) ?? "EUR";
 
         var invoice = new Invoice
         {
@@ -69,8 +42,8 @@ public sealed class InvoiceService(ApplicationDbContext db, TimeProvider clock)
         };
         Apply(invoice, input);
 
-        db.Invoices.Add(invoice);
-        await db.SaveChangesAsync(ct);
+        invoices.Add(invoice);
+        await unitOfWork.SaveChangesAsync(ct);
         return invoice;
     }
 
@@ -84,11 +57,11 @@ public sealed class InvoiceService(ApplicationDbContext db, TimeProvider clock)
 
         await ValidateAsync(ownerId, input, ct);
 
-        db.InvoiceLines.RemoveRange(invoice.Lines);
+        invoices.RemoveLines(invoice.Lines);
         invoice.Lines.Clear();
         Apply(invoice, input);
 
-        await db.SaveChangesAsync(ct);
+        await unitOfWork.SaveChangesAsync(ct);
         return invoice;
     }
 
@@ -101,9 +74,9 @@ public sealed class InvoiceService(ApplicationDbContext db, TimeProvider clock)
 
         try
         {
-            await db.SaveChangesAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException)
+        catch (DataConflictException)
         {
             // Two requests picked the same number at once: the unique index stopped the second one.
             throw new DomainException("Could not assign an invoice number, please try again.");
@@ -117,7 +90,7 @@ public sealed class InvoiceService(ApplicationDbContext db, TimeProvider clock)
         if (invoice is null) return null;
 
         invoice.MarkPaid(paidOn ?? Today);
-        await db.SaveChangesAsync(ct);
+        await unitOfWork.SaveChangesAsync(ct);
         return invoice;
     }
 
@@ -129,8 +102,8 @@ public sealed class InvoiceService(ApplicationDbContext db, TimeProvider clock)
         if (!invoice.IsEditable)
             throw new DomainException("Only drafts can be deleted. Sent invoices must be kept.");
 
-        db.Invoices.Remove(invoice);
-        await db.SaveChangesAsync(ct);
+        invoices.Remove(invoice);
+        await unitOfWork.SaveChangesAsync(ct);
         return true;
     }
 
@@ -138,10 +111,7 @@ public sealed class InvoiceService(ApplicationDbContext db, TimeProvider clock)
     private async Task<string> NextNumberAsync(string ownerId, int year, CancellationToken ct)
     {
         var prefix = $"{year}-";
-        var existing = await db.Invoices
-            .Where(i => i.OwnerId == ownerId && i.Number != null && i.Number.StartsWith(prefix))
-            .Select(i => i.Number!)
-            .ToListAsync(ct);
+        var existing = await invoices.NumbersStartingWithAsync(ownerId, prefix, ct);
 
         var last = existing
             .Select(n => int.TryParse(n.AsSpan(prefix.Length), out var seq) ? seq : 0)
@@ -154,7 +124,7 @@ public sealed class InvoiceService(ApplicationDbContext db, TimeProvider clock)
     private async Task ValidateAsync(string ownerId, InvoiceInput input, CancellationToken ct)
     {
         // The form already checks these, but a service must not trust its caller.
-        if (!await db.Clients.AnyAsync(c => c.OwnerId == ownerId && c.Id == input.ClientId, ct))
+        if (!await clients.ExistsAsync(ownerId, input.ClientId, ct))
             throw new DomainException("Please choose one of your clients.");
         if (input.DueDate < input.IssueDate)
             throw new DomainException("The due date cannot be before the issue date.");

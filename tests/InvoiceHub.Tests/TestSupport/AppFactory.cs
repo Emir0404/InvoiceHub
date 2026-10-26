@@ -63,9 +63,9 @@ public sealed partial class Browser(HttpClient client)
 
     public async Task Register(string email, string password = "Password123!")
     {
-        var response = await PostForm("/Identity/Account/Register", "/Identity/Account/Register",
+        var response = await PostForm("/account/register", "/account/register",
         [
-            new("Input.Email", email), new("Input.Password", password), new("Input.ConfirmPassword", password),
+            new("Email", email), new("Password", password), new("ConfirmPassword", password),
         ]);
         // Success is a redirect (signed in). A 200 would mean the form was shown again with errors.
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);

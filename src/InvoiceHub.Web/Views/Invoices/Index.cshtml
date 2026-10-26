@@ -23,7 +23,7 @@
         </select>
     </div>
     <div class="col-4 col-md-2">
-        <button class="btn btn-outline-secondary w-100" type="submit">Filter</button>
+        <button class="btn btn-quiet w-100" type="submit">Filter</button>
     </div>
 </form>
 
@@ -36,16 +36,16 @@
     {
         <div class="table-responsive">
             <table class="table table-hover mb-0 align-middle">
-                <thead><tr><th>Number</th><th>Client</th><th>Issued</th><th>Due</th><th>Status</th><th class="num">Total</th></tr></thead>
+                <thead><tr><th>Number</th><th>Client</th><th class="d-none d-md-table-cell">Issued</th><th class="d-none d-md-table-cell">Due</th><th>Status</th><th class="num">Total</th></tr></thead>
                 <tbody>
                 @foreach (var invoice in Model.Invoices)
                 {
                     var (text, css) = StatusDisplay.Of(invoice, today);
                     <tr>
-                        <td><a asp-action="Details" asp-route-id="@invoice.Id">@(invoice.Number ?? "Draft")</a></td>
-                        <td>@invoice.Client.Name</td>
-                        <td>@invoice.IssueDate.ToString("dd MMM yyyy")</td>
-                        <td>@invoice.DueDate.ToString("dd MMM yyyy")</td>
+                        <td class="text-nowrap"><a asp-action="Details" asp-route-id="@invoice.Id">@(invoice.Number ?? "Draft")</a></td>
+                        <td>@invoice.Client.Name<div class="small text-muted d-md-none">Due @invoice.DueDate.ToString("dd MMM yyyy")</div></td>
+                        <td class="d-none d-md-table-cell">@invoice.IssueDate.ToString("dd MMM yyyy")</td>
+                        <td class="d-none d-md-table-cell">@invoice.DueDate.ToString("dd MMM yyyy")</td>
                         <td><span class="badge text-bg-@css">@text</span></td>
                         <td class="num">@StatusDisplay.Money(invoice.Totals.Gross, invoice.Currency)</td>
                     </tr>

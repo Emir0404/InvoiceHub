@@ -26,11 +26,11 @@
                         <td>@client.Email</td>
                         <td>@client.TaxId</td>
                         <td class="num">
-                            <a class="btn btn-sm btn-outline-primary" asp-controller="Invoices" asp-action="Create" asp-route-clientId="@client.Id">Invoice</a>
-                            <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@client.Id">Edit</a>
+                            <a class="btn btn-sm btn-primary" asp-controller="Invoices" asp-action="Create" asp-route-clientId="@client.Id">Invoice</a>
+                            <a class="btn btn-sm btn-quiet" asp-action="Edit" asp-route-id="@client.Id">Edit</a>
                             <form class="d-inline" asp-action="Delete" asp-route-id="@client.Id" method="post"
                                   data-confirm="Delete @client.Name? This cannot be undone.">
-                                <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                                <button class="btn btn-sm btn-quiet-danger" type="submit">Delete</button>
                             </form>
                         </td>
                     </tr>

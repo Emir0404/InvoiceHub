@@ -41,11 +41,15 @@
                 </div>
                 <div class="col-md-4 mb-4">
                     <label asp-for="Currency" class="form-label"></label>
-                    <input asp-for="Currency" class="form-control text-uppercase" maxlength="3" />
+                    @{
+                        var currencies = new[] { "EUR", "USD", "GBP", "CHF", "BAM", "RSD", "HRK", "PLN", "CZK", "SEK", "NOK", "DKK", "CAD", "AUD" }
+                            .Append(Model.Currency).Where(c => !string.IsNullOrEmpty(c)).Distinct().Order();
+                    }
+                    <select asp-for="Currency" asp-items="@(currencies.Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem(c, c)))" class="form-select"></select>
                     <span asp-validation-for="Currency" class="text-danger small"></span>
                 </div>
             </div>
-            <button class="btn btn-primary" type="submit">Save</button>
+            <button class="btn btn-primary" type="submit">Save changes</button>
         </form>
     </div>
 </div>
