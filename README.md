@@ -94,12 +94,12 @@ so accounts and logins survive restarts. The container runs as a non-root user.
 
 ## Tests (97)
 
-- **Calculator** (9): rounding, VAT per rate, mixed rates, big numbers
-- **Invoice state machine** (12): send, pay, overdue boundaries, invalid transitions
-- **Services against a real SQLite schema** (~50): numbering per user/year, validation, filters, search wildcards,
+- **Calculator**: rounding, VAT per rate, mixed rates, big numbers
+- **Invoice state machine**: send, pay, overdue boundaries, invalid transitions
+- **Services against a real SQLite schema**: numbering per user/year, validation, filters, search wildcards,
   dashboard sums, **cross-user isolation**
-- **PDF** (6): valid file, pagination, diacritics, optional fields
-- **Web, whole app in memory** (~20): login redirects, full create → send → PDF → pay journey,
+- **PDF**: valid file, pagination, diacritics, optional fields
+- **Web, whole app in memory**: login redirects, full create → send → PDF → pay journey,
   CSRF, 404 page, security headers, **a second user probing the first user's data**
 
 ## Known limits (deliberate, to keep the demo focused)
