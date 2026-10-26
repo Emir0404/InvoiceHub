@@ -1,0 +1,57 @@
+@model InvoiceListModel
+@{
+    ViewData["Title"] = "Invoices";
+    var today = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+    var statuses = new[] { ("", "All"), ("draft", "Draft"), ("sent", "Sent"), ("overdue", "Overdue"), ("paid", "Paid") };
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <h1 class="h3 mb-0">Invoices</h1>
+    <a class="btn btn-primary" asp-action="Create">New invoice</a>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-12 col-md-5">
+        <input name="search" value="@Model.Search" class="form-control" placeholder="Search by number or client" />
+    </div>
+    <div class="col-8 col-md-3">
+        <select name="status" class="form-select">
+            @foreach (var (value, label) in statuses)
+            {
+                <option value="@value" selected="@(string.Equals(Model.Status ?? "", value, StringComparison.OrdinalIgnoreCase))">@label</option>
+            }
+        </select>
+    </div>
+    <div class="col-4 col-md-2">
+        <button class="btn btn-outline-secondary w-100" type="submit">Filter</button>
+    </div>
+</form>
+
+<div class="card">
+    @if (Model.Invoices.Count == 0)
+    {
+        <div class="card-body text-muted">No invoices match. Try another filter, or create a new invoice.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead><tr><th>Number</th><th>Client</th><th>Issued</th><th>Due</th><th>Status</th><th class="num">Total</th></tr></thead>
+                <tbody>
+                @foreach (var invoice in Model.Invoices)
+                {
+                    var (text, css) = StatusDisplay.Of(invoice, today);
+                    <tr>
+                        <td><a asp-action="Details" asp-route-id="@invoice.Id">@(invoice.Number ?? "Draft")</a></td>
+                        <td>@invoice.Client.Name</td>
+                        <td>@invoice.IssueDate.ToString("dd MMM yyyy")</td>
+                        <td>@invoice.DueDate.ToString("dd MMM yyyy")</td>
+                        <td><span class="badge text-bg-@css">@text</span></td>
+                        <td class="num">@StatusDisplay.Money(invoice.Totals.Gross, invoice.Currency)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

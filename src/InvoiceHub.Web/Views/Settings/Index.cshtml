@@ -1,0 +1,53 @@
+@model CompanyForm
+@{
+    ViewData["Title"] = "My company";
+}
+
+<h1 class="h3 mb-1">My company</h1>
+<p class="text-muted mb-4">These details are printed at the top of every invoice you create.</p>
+
+<div class="card" style="max-width: 44rem">
+    <div class="card-body">
+        <form asp-action="Index" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Address" class="form-label"></label>
+                <textarea asp-for="Address" class="form-control" rows="2"></textarea>
+                <span asp-validation-for="Address" class="text-danger small"></span>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="TaxId" class="form-label"></label>
+                    <input asp-for="TaxId" class="form-control" />
+                    <span asp-validation-for="TaxId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control" type="email" />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label asp-for="Iban" class="form-label">IBAN (for payments)</label>
+                    <input asp-for="Iban" class="form-control" />
+                    <span asp-validation-for="Iban" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <label asp-for="Currency" class="form-label"></label>
+                    <input asp-for="Currency" class="form-control text-uppercase" maxlength="3" />
+                    <span asp-validation-for="Currency" class="text-danger small"></span>
+                </div>
+            </div>
+            <button class="btn btn-primary" type="submit">Save</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

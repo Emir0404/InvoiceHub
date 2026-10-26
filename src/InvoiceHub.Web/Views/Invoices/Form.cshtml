@@ -1,0 +1,110 @@
+@model InvoiceForm
+@{
+    var editing = Model.Id is not null;
+    ViewData["Title"] = editing ? "Edit draft" : "New invoice";
+}
+
+<h1 class="h3 mb-4">@ViewData["Title"]</h1>
+
+@if (Model.Clients.Count == 0)
+{
+    <div class="alert alert-info">
+        You need a client first. <a asp-controller="Clients" asp-action="Create" class="alert-link">Add a client</a>, then come back.
+    </div>
+}
+else
+{
+<form method="post" asp-action="@(editing ? "Edit" : "Create")" asp-route-id="@Model.Id" id="invoice-form">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="ClientId" class="form-label"></label>
+                    <select asp-for="ClientId" asp-items="Model.Clients" class="form-select">
+                        <option value="">Choose a client...</option>
+                    </select>
+                    <span asp-validation-for="ClientId" class="text-danger small"></span>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label asp-for="IssueDate" class="form-label"></label>
+                    <input asp-for="IssueDate" type="date" class="form-control" />
+                    <span asp-validation-for="IssueDate" class="text-danger small"></span>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label asp-for="DueDate" class="form-label"></label>
+                    <input asp-for="DueDate" type="date" class="form-control" />
+                    <span asp-validation-for="DueDate" class="text-danger small"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">Lines</div>
+        <div class="table-responsive">
+            <table class="table line-table mb-0" id="lines">
+                <thead>
+                    <tr><th style="min-width: 220px">Description</th><th>Qty</th><th>Unit price</th><th>VAT %</th><th class="num">Net</th><th></th></tr>
+                </thead>
+                <tbody id="lines-body">
+                @for (var i = 0; i < Model.Lines.Count; i++)
+                {
+                    <tr class="line-row">
+                        <td>
+                            <input asp-for="Lines[i].Description" class="form-control" />
+                            <span asp-validation-for="Lines[i].Description" class="text-danger small"></span>
+                        </td>
+                        <td><input asp-for="Lines[i].Quantity" type="number" step="any" min="0" class="form-control" data-field="qty" /></td>
+                        <td><input asp-for="Lines[i].UnitPrice" type="number" step="0.01" min="0" class="form-control" data-field="price" /></td>
+                        <td><input asp-for="Lines[i].VatRate" type="number" step="0.01" min="0" max="100" class="form-control" data-field="vat" /></td>
+                        <td class="num line-total" data-role="net">0.00</td>
+                        <td><button type="button" class="btn btn-sm btn-outline-danger" data-role="remove" aria-label="Remove line">&times;</button></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <div class="card-body border-top">
+            <button type="button" class="btn btn-sm btn-outline-primary" id="add-line">Add line</button>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-7">
+            <label asp-for="Notes" class="form-label"></label>
+            <textarea asp-for="Notes" class="form-control" rows="4" placeholder="Payment terms, thank-you note..."></textarea>
+            <span asp-validation-for="Notes" class="text-danger small"></span>
+        </div>
+        <div class="col-md-5">
+            <div class="totals-box" id="totals">
+                <div class="row"><div class="col text-muted">Net total</div><div class="col-auto num" data-role="total-net">0.00</div></div>
+                <div id="vat-lines"></div>
+                <hr />
+                <div class="row fw-bold fs-5"><div class="col">Total</div><div class="col-auto num" data-role="total-gross">0.00</div></div>
+                <div class="small text-muted mt-2">Preview only. The server calculates the final amounts.</div>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Save draft</button>
+    <a class="btn btn-link" asp-action="Index">Cancel</a>
+</form>
+
+<template id="line-template">
+    <tr class="line-row">
+        <td><input name="Lines[__i__].Description" class="form-control" /></td>
+        <td><input name="Lines[__i__].Quantity" type="number" step="any" min="0" value="1" class="form-control" data-field="qty" /></td>
+        <td><input name="Lines[__i__].UnitPrice" type="number" step="0.01" min="0" value="0" class="form-control" data-field="price" /></td>
+        <td><input name="Lines[__i__].VatRate" type="number" step="0.01" min="0" max="100" value="0" class="form-control" data-field="vat" /></td>
+        <td class="num line-total" data-role="net">0.00</td>
+        <td><button type="button" class="btn btn-sm btn-outline-danger" data-role="remove" aria-label="Remove line">&times;</button></td>
+    </tr>
+</template>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/invoice-form.js" asp-append-version="true"></script>
+}

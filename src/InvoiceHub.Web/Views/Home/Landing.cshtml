@@ -1,0 +1,33 @@
+@{
+    ViewData["Title"] = "Invoicing for small businesses";
+}
+
+<section class="hero text-center">
+    <h1 class="display-5">Invoicing that stays out of your way.</h1>
+    <p class="lead text-muted mx-auto" style="max-width: 36rem">
+        Keep your clients, create professional invoices with VAT, send them with a proper number
+        and see at a glance who still owes you money.
+    </p>
+    <div class="d-flex gap-2 justify-content-center mt-4">
+        <a class="btn btn-primary btn-lg" asp-area="Identity" asp-page="/Account/Register">Create a free account</a>
+        <a class="btn btn-outline-secondary btn-lg" asp-area="Identity" asp-page="/Account/Login">Log in</a>
+    </div>
+</section>
+
+<section class="row g-4 mb-5">
+    <div class="col-md-4">
+        <div class="feature-icon mb-3">1</div>
+        <h2 class="h5">Clients and invoices</h2>
+        <p class="text-muted">Draft an invoice, edit it freely, and send it when it is right. Sent invoices are locked, as the law expects.</p>
+    </div>
+    <div class="col-md-4">
+        <div class="feature-icon mb-3">2</div>
+        <h2 class="h5">Correct VAT and numbering</h2>
+        <p class="text-muted">VAT per rate, rounded the way invoices require, and gap-free numbers like 2026-0001.</p>
+    </div>
+    <div class="col-md-4">
+        <div class="feature-icon mb-3">3</div>
+        <h2 class="h5">PDF in one click</h2>
+        <p class="text-muted">A clean A4 PDF with your company details, VAT breakdown and payment information.</p>
+    </div>
+</section>

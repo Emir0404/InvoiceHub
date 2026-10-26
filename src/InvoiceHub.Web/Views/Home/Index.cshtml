@@ -1,0 +1,86 @@
+﻿@model DashboardSummary
+@{
+    ViewData["Title"] = "Dashboard";
+    var today = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+
+    string Join(IReadOnlyList<Money> amounts) =>
+        amounts.Count == 0 ? "0.00" : string.Join(" + ", amounts.Select(m => StatusDisplay.Money(m.Amount, m.Currency)));
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <h1 class="h3 mb-0">Dashboard</h1>
+    <a class="btn btn-primary" asp-controller="Invoices" asp-action="Create">New invoice</a>
+</div>
+
+@if (ViewBag.NeedsCompanyProfile == true)
+{
+    <div class="alert alert-info">
+        Add your company details first, so they appear on your invoices.
+        <a asp-controller="Settings" asp-action="Index" class="alert-link">Open My company</a>.
+    </div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card stat-card primary h-100"><div class="card-body">
+            <div class="stat-label">Outstanding</div>
+            <div class="stat-value">@Join(Model.Outstanding)</div>
+            <div class="text-muted small">Sent, not yet paid</div>
+        </div></div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card stat-card danger h-100"><div class="card-body">
+            <div class="stat-label">Overdue</div>
+            <div class="stat-value">@Join(Model.Overdue)</div>
+            <div class="text-muted small">@Model.OverdueCount @(Model.OverdueCount == 1 ? "invoice" : "invoices") past due date</div>
+        </div></div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card stat-card success h-100"><div class="card-body">
+            <div class="stat-label">Paid this month</div>
+            <div class="stat-value">@Join(Model.PaidThisMonth)</div>
+            <div class="text-muted small">@today.ToString("MMMM yyyy")</div>
+        </div></div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card stat-card secondary h-100"><div class="card-body">
+            <div class="stat-label">Drafts</div>
+            <div class="stat-value">@Model.DraftCount</div>
+            <div class="text-muted small">Waiting to be sent</div>
+        </div></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Recent invoices</span>
+        <a asp-controller="Invoices" asp-action="Index" class="small">View all</a>
+    </div>
+    @if (Model.Recent.Count == 0)
+    {
+        <div class="card-body text-muted">
+            No invoices yet. Add a <a asp-controller="Clients" asp-action="Create">client</a>, then create your first invoice.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead><tr><th>Number</th><th>Client</th><th>Due</th><th>Status</th><th class="num">Total</th></tr></thead>
+                <tbody>
+                @foreach (var invoice in Model.Recent)
+                {
+                    var (text, css) = StatusDisplay.Of(invoice, today);
+                    <tr>
+                        <td><a asp-controller="Invoices" asp-action="Details" asp-route-id="@invoice.Id">@(invoice.Number ?? "Draft")</a></td>
+                        <td>@invoice.Client.Name</td>
+                        <td>@invoice.DueDate.ToString("dd MMM yyyy")</td>
+                        <td><span class="badge text-bg-@css">@text</span></td>
+                        <td class="num">@StatusDisplay.Money(invoice.Totals.Gross, invoice.Currency)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

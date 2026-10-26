@@ -1,0 +1,90 @@
+@model Invoice
+@{
+    var today = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+    var (statusText, statusCss) = StatusDisplay.Of(Model, today);
+    var totals = Model.Totals;
+    ViewData["Title"] = Model.Number ?? "Draft invoice";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+        <h1 class="h3 mb-1">Invoice @(Model.Number ?? "(draft)")
+            <span class="badge text-bg-@statusCss fs-6 align-middle">@statusText</span></h1>
+        <div class="text-muted">@Model.Client.Name</div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+        @if (Model.Status == InvoiceStatus.Draft)
+        {
+            <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+            <form asp-action="Send" asp-route-id="@Model.Id" method="post"
+                  data-confirm="Send this invoice? It gets its number and can no longer be edited.">
+                <button class="btn btn-primary" type="submit">Send invoice</button>
+            </form>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" data-confirm="Delete this draft?">
+                <button class="btn btn-outline-danger" type="submit">Delete</button>
+            </form>
+        }
+        @if (Model.Status == InvoiceStatus.Sent)
+        {
+            <form asp-action="MarkPaid" asp-route-id="@Model.Id" method="post" class="d-flex gap-2">
+                <input type="date" name="paidOn" value="@today.ToString("yyyy-MM-dd")" class="form-control" aria-label="Payment date" />
+                <button class="btn btn-success text-nowrap" type="submit">Mark as paid</button>
+            </form>
+        }
+        <a class="btn btn-outline-primary" asp-action="Pdf" asp-route-id="@Model.Id" target="_blank" rel="noopener">Download PDF</a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body row g-3">
+        <div class="col-6 col-md-3"><div class="stat-label">Issue date</div>@Model.IssueDate.ToString("dd MMM yyyy")</div>
+        <div class="col-6 col-md-3"><div class="stat-label">Due date</div>@Model.DueDate.ToString("dd MMM yyyy")</div>
+        @if (Model.PaidOn is { } paid)
+        {
+            <div class="col-6 col-md-3"><div class="stat-label">Paid on</div>@paid.ToString("dd MMM yyyy")</div>
+        }
+        <div class="col-6 col-md-3"><div class="stat-label">Currency</div>@Model.Currency</div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">VAT</th><th class="num">Net</th></tr></thead>
+            <tbody>
+            @foreach (var line in Model.Lines)
+            {
+                <tr>
+                    <td>@line.Description</td>
+                    <td class="num">@line.Quantity.ToString("0.####")</td>
+                    <td class="num">@line.UnitPrice.ToString("N2")</td>
+                    <td class="num">@line.VatRate.ToString("0.##") %</td>
+                    <td class="num">@InvoiceCalculator.LineNet(line).ToString("N2")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <div class="card-body border-top">
+        <div class="totals-box">
+            <div class="row"><div class="col text-muted">Net total</div><div class="col-auto num">@StatusDisplay.Money(totals.Net, Model.Currency)</div></div>
+            @foreach (var vat in totals.Breakdown.Where(b => b.Rate > 0))
+            {
+                <div class="row"><div class="col text-muted">VAT @vat.Rate.ToString("0.##") % on @vat.Net.ToString("N2")</div><div class="col-auto num">@StatusDisplay.Money(vat.Vat, Model.Currency)</div></div>
+            }
+            <hr />
+            <div class="row fw-bold fs-5"><div class="col">Total</div><div class="col-auto num">@StatusDisplay.Money(totals.Gross, Model.Currency)</div></div>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Notes))
+{
+    <div class="card">
+        <div class="card-header">Notes</div>
+        <div class="card-body" style="white-space: pre-line">@Model.Notes</div>
+    </div>
+}
+
+<p class="mt-3"><a asp-action="Index">&larr; Back to invoices</a></p>
